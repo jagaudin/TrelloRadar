@@ -43,8 +43,6 @@ from tkinter import ttk
 search_url = "https://api.trello.com/1/search"
 boards_url = "https://api.trello.com/1/boards"
 
-
-
 class AuthForm:
     
     class FormBrowser(WinForms.Form):
@@ -248,7 +246,7 @@ class TrelloToDoApp():
         try:
             self.root.iconbitmap(default='icons/transparent.ico')
         except:
-			pass
+	    pass
 			
         self.root.geometry('540x700')
         self.root.title("Trello Radar")  
