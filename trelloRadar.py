@@ -123,7 +123,7 @@ class AuthForm:
         thread.Join()
         
 
-class TrelloToDoApp():
+class TrelloRadarApp():
     
     config_path = Path.home() / "AppData" / "Local" / "TrelloRadar" / "setup.ini"
     search_strings = ['@me']
@@ -282,4 +282,4 @@ class TrelloToDoApp():
         self.refresh_button.grid(column=2, row=1)
 
 if __name__ == "__main__":
-    trello_todo_app = TrelloToDoApp()
+    trello_todo_app = TrelloRadarApp()
