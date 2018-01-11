@@ -19,11 +19,6 @@ Created on Thu Jan  4 17:12:14 2018
 @author: Jacques Gaudin <jagaudin@gmail.com>
 """
 
-import System.Windows.Forms as WinForms
-from System.Threading import Thread, ThreadStart, ApartmentState
-from System.Drawing import Size
-
-import threading
 import requests
 import json
 import configparser
@@ -38,32 +33,58 @@ import tkinter as tk
 from tkinter import ttk
 
 import clr
-clr.AddReference("System.Windows")
-clr.AddReference("System.Windows.Forms")
+clr.AddReference('System.Threading')
+clr.AddReference('System.Windows')
+clr.AddReference('System.Windows.Forms')
+import System.Windows.Forms as WinForms
+from System.Threading import Thread, ThreadStart, ApartmentState
+from System.Drawing import Size
 
-search_url = "https://api.trello.com/1/search"
-boards_url = "https://api.trello.com/1/boards"
+search_url = 'https://api.trello.com/1/search'
+boards_url = 'https://api.trello.com/1/boards'
 
 
-class AuthForm:
+class AuthDialog:
+    """
+    A class to present a authorization dialog to the user.
+
+    :param API_key: an Trello API key, default `None`
+    :returns: an `AuthDialog` object
+    """
 
     class FormBrowser(WinForms.Form):
+        """
+        A class to implement a basic browser based on `Windows.Forms`.
+        The browser is specifically tuned to retrieve the user's Trello
+        API key and get a token.
 
-        token_url = ('https://trello.com/1/authorize?key=%s'
-                     '&name=%s&expiration=%s&response_type=token&scope=%s')
+        :param API_key: an Trello API key, default `None`
+        :returns: a `FormBrowser` object
+        """
 
-        token_success_string = ("You have granted  access to "
-                                "your Trello information.")
-        api_key_success_string = "Developer API Keys"
+        token_url = ('https://trello.com/1/authorize?key={0}'
+                     '&name={1}&expiration={2}&response_type=token&scope={3}')
 
-        def __init__(self, title, API_key=None):
+        name, expiry, scope = 'TrelloRadar', 'never', 'read,write'
+
+        token_success_string = ('You have granted  access to '
+                                'your Trello information.')
+
+        login_url = 'https://trello.com/login'
+        login_redirect_url = 'https://trello.com/'
+        API_key_url = 'https://trello.com/app-key'
+
+        api_key_success_string = 'Developer API Keys'
+
+        def __init__(self, API_key=None):
+
             if API_key:
-                self.target_url = self.token_url
-                self.target_url %= (API_key, "TrelloRadar", "never", 'read,write')
+                self.target_url = self.token_url.format(
+                        API_key, self.name, self.expiry, self.scope)
             else:
-                self.target_url = "https://trello.com/login"
+                self.target_url = self.login_url
 
-            self.Text = title
+            self.Text = 'Authorization'
             self.ClientSize = Size(800, 800)
 
             self.FormBorderStyle = WinForms.FormBorderStyle.FixedSingle
@@ -89,21 +110,22 @@ class AuthForm:
 
         def on_navigated(self, sender, args):
             self.web_browser.Visible = True
-            # redirect main user page
-            if str(self.web_browser.Url) == "https://trello.com/":
+            # redirect main user page on successful login
+            if str(self.web_browser.Url) == self.login_redirect_url:
                 self.web_browser.Stop()
-                self.web_browser.Navigate("https://trello.com/app-key")
+                self.web_browser.Navigate(self.API_key_url)
 
         def on_document_completed(self, sender, args):
-            self.soup = BeautifulSoup(self.web_browser.DocumentText, 'html.parser')
+            content = self.web_browser.DocumentText
+            self.soup = BeautifulSoup(content, 'html.parser')
 
         def check_API_key(self, sender, args):
             try:
-                if self.api_key_success_string in self.soup.find("h1").string:
+                if self.api_key_success_string in self.soup.find('h1').string:
                     self.web_browser.Visible = False
-                    self.API_key = self.soup.find("input", id="key")["value"]
-                    self.target_url = self.token_url
-                    self.target_url %= (self.API_key, "TrelloRadar", "never", 'read,write')
+                    self.API_key = self.soup.find('input', id='key')['value']
+                    self.target_url = self.token_url.format(
+                            self.API_key, self.name, self.expiry, self.scope)
                     self.web_browser.Navigate(self.target_url)
             except:
                 pass
@@ -118,7 +140,7 @@ class AuthForm:
 
     def __init__(self, API_key=None):
         def start():
-            self.browser = AuthForm.FormBrowser("Authorization", API_key)
+            self.browser = AuthDialog.FormBrowser(API_key)
             WinForms.Application.Run(self.browser)
 
         thread = Thread(ThreadStart(start))
@@ -129,13 +151,17 @@ class AuthForm:
 
 class TrelloRadarApp():
 
-    config_path = Path.home() / "AppData" / "Local" / "TrelloRadar" / "setup.ini"
+    config_path = (Path.home() / 'AppData' / 'Local' / 'TrelloRadar' /
+                   'settings.ini')
     search_strings = ['@me']
-    card_limit = "1000"
+    card_limit = '1000'
+
+    time_f = '%Y-%m-%dT%H:%M:%S.%fZ'
 
     def __init__(self):
         self.boards_by_id = {}
         self.boards_by_name = {}
+        self.today = datetime.today().date()
 
         self.get_config()
         self.setup_gui()
@@ -149,10 +175,10 @@ class TrelloRadarApp():
             self.config_path.touch()
         self.config = configparser.ConfigParser()
         self.config.read(self.config_path)
-        if self.config.has_section("auth"):
-            if self.config.has_option("auth", "API key"):
+        if self.config.has_section('auth'):
+            if self.config.has_option('auth', 'API key'):
                 self.API_key = self.config['auth']['API key']
-                if self.config.has_option("auth", "token"):
+                if self.config.has_option('auth', 'token'):
                     self.token = self.config['auth']['token']
                 else:
                     self.get_token()
@@ -161,56 +187,57 @@ class TrelloRadarApp():
         else:
             self.get_API_key()
 
-        if self.config.has_option("search", "search strings"):
-            search_strings = self.config["search"]["search strings"]
-            self.search_strings = search_strings.split(";")
+        if self.config.has_option('search', 'search strings'):
+            search_strings = self.config['search']['search strings']
+            self.search_strings = search_strings.split(';')
         else:
             self.config['search'] = {}
-            self.config["search"]["search strings"] = ''
+            self.config['search']['search strings'] = ''
 
     def get_API_key(self):
-        self.API_process = AuthForm()
+        self.API_process = AuthDialog()
         try:
             self.API_key = self.API_process.browser.API_key
             self.token = self.API_process.browser.token
         except:
-            print("Failed to retrieve API key and token")
+            print('Failed to retrieve API key and token')
         self.config['auth'] = {}
         self.config['auth']['API key'] = self.API_key
         self.config['auth']['token'] = self.token
         self.config.write(self.config_path.open('w'))
 
     def get_token(self):
-        self.auth_process = AuthForm(self.API_key)
+        self.auth_process = AuthDialog(self.API_key)
         self.token = self.auth_process.browser.token
         self.config['auth']['token'] = self.token
         self.config.write(self.config_path.open('w'))
 
     def setup_queries(self):
         self.searchquery = {
-            "key": self.API_key,
-            "token": self.token,
-            "query": "",
-            "cards_limit": self.card_limit,
+            'key': self.API_key,
+            'token': self.token,
+            'query': '',
+            'cards_limit': self.card_limit,
         }
         self.boardsquery = {
-            "key": self.API_key,
-            "token": self.token,
+            'key': self.API_key,
+            'token': self.token,
         }
 
     def get_data(self):
         self.todo_tree.delete(*self.todo_tree.get_children())
         querystring = self.entry.get()
-        self.searchquery["query"] = querystring
+        self.searchquery['query'] = querystring
         if querystring not in self.search_strings:
             self.search_strings.append(querystring)
-            self.entry["values"] = self.search_strings
-        response = requests.request("GET", search_url, params=self.searchquery)
+            self.entry['values'] = self.search_strings
+        response = requests.request('GET', search_url, params=self.searchquery)
         cards = json.loads(response.text)['cards']
 
         for card in cards:
             if card['idBoard'] not in self.boards_by_id.keys():
-                response = requests.request("GET", boards_url+'/{0}'.format(card['idBoard']), params=self.boardsquery)
+                response = requests.request('GET', boards_url+'/{0}'.format(
+                        card['idBoard']), params=self.boardsquery)
                 board = json.loads(response.text)
                 self.boards_by_id[card['idBoard']] = board
                 self.boards_by_name[board['name']] = board
@@ -224,14 +251,22 @@ class TrelloRadarApp():
             self.todo_tree.item(board_url, open=True)
 
             for c in it_cards:
-                due_date = datetime.strptime(c['due'], "%Y-%m-%dT%H:%M:%S.%fZ").date() if c['due'] else ''
-                tags = ('overdue',) if due_date and datetime.today().date() > due_date else ('normal',)
-                label = c['labels'][0]['name'] if c['labels'] else ''
-                self.todo_tree.insert(board_url, 'end', c['shortUrl'], text=c['name'], values=(due_date, label), tags=tags)
+                if c['due']:
+                    due_date = datetime.strptime(c['due'], self.time_f).date()
+                    tags = ('overdue',) if self.today > due_date else ()
+                else:
+                    due_date = ''
+                    tags = ()
+
+                labels = ', '.join(label['name'] for label in c['labels'])
+
+                self.todo_tree.insert(board_url, 'end', c['shortUrl'],
+                                      text=c['name'],
+                                      values=(due_date, labels), tags=tags)
 
     def clear_search(self):
         self.search_strings = ['@me']
-        self.entry["values"] = self.search_strings
+        self.entry['values'] = self.search_strings
 
     def link_tree(self, event):
         url = self.todo_tree.selection()[0]
@@ -242,51 +277,52 @@ class TrelloRadarApp():
 
     def on_closing(self):
         config_search_strings = ';'.join(s for s in self.search_strings)
-        self.config["search"]["search strings"] = config_search_strings
+        self.config['search']['search strings'] = config_search_strings
         self.config.write(self.config_path.open('w'))
         self.root.destroy()
 
     def setup_gui(self):
         self.root = tk.Tk()
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.protocol('WM_DELETE_WINDOW', self.on_closing)
         try:
             self.root.iconbitmap(default='icons/transparent.ico')
         except:
-            print("Icon file not found")
+            print('Icon file not found')
 
         self.root.geometry('540x700')
-        self.root.title("Trello Radar")
+        self.root.title('Trello Radar')
 
-        self.mainframe = ttk.Frame(self.root, padding="3 3 3 3")
-        self.mainframe.grid(column=0, row=0, columnspan=3, sticky="nwes")
+        self.mainframe = ttk.Frame(self.root, padding='3 3 3 3')
+        self.mainframe.grid(column=0, row=0, columnspan=3, sticky='nwes')
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        self.todo_tree = ttk.Treeview(self.mainframe, columns=('Due Date', 'Label'))
-        self.todo_tree.pack(expand=True, fill="both")
-        self.todo_tree.heading("#0", text="Task")
-        self.todo_tree.column("#0", minwidth=200, width=390, stretch=True)
-        self.todo_tree.heading("Due Date", text="Due Date")
-        self.todo_tree.column("Due Date", minwidth=50, width=70, stretch=False)
-        self.todo_tree.heading("Label", text="Label")
-        self.todo_tree.column("Label", minwidth=50, width=60, stretch=False)
+        self.todo_tree = ttk.Treeview(self.mainframe,
+                                      columns=('Due Date', 'Label'))
+        self.todo_tree.pack(expand=True, fill='both')
+        self.todo_tree.heading('#0', text='Task')
+        self.todo_tree.column('#0', minwidth=200, width=390, stretch=True)
+        self.todo_tree.heading('Due Date', text='Due Date')
+        self.todo_tree.column('Due Date', minwidth=50, width=70, stretch=False)
+        self.todo_tree.heading('Label', text='Label')
+        self.todo_tree.column('Label', minwidth=50, width=60, stretch=False)
 
-        self.todo_tree.tag_configure('normal')
         self.todo_tree.tag_configure('overdue', foreground='red')
 
-        self.todo_tree.bind("<Double-1>", self.link_tree)
+        self.todo_tree.bind('<Double-1>', self.link_tree)
 
         self.entry = ttk.Combobox(self.root, values=self.search_strings)
         self.entry.insert(0, self.search_strings[0])
-        self.entry.grid(column=0, row=1, sticky="ew")
-        self.entry.bind("<Return>", self.on_entry_return)
+        self.entry.grid(column=0, row=1, sticky='ew')
+        self.entry.bind('<Return>', self.on_entry_return)
 
-        self.clear_button = ttk.Button(self.root, text='Clear search', command=self.clear_search)
+        self.clear_button = ttk.Button(self.root, text='Clear search',
+                                       command=self.clear_search)
         self.clear_button.grid(column=1, row=1)
 
-        self.refresh_button = ttk.Button(self.root, text='Refresh', command=self.get_data)
+        self.refresh_button = ttk.Button(self.root, text='Refresh',
+                                         command=self.get_data)
         self.refresh_button.grid(column=2, row=1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     trello_todo_app = TrelloRadarApp()
-
