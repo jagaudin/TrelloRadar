@@ -10,6 +10,10 @@ Welcome to TrelloRadar's documentation!
    :maxdepth: 2
    :caption: Contents:
    
-   .. automodule:: trelloRadar
-      :members:
-      :undoc-members:
+.. autoclass:: Authdialog
+   :members:
+   :undoc-members:
+   
+.. autoclass:: TrelloRadarApp
+   :members:
+   :undoc-members:
