@@ -10,6 +10,8 @@ Welcome to TrelloRadar's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+.. automodule:: trelloRadar
+   
 .. autoclass:: Authdialog
    :members:
    :undoc-members:
@@ -17,3 +19,10 @@ Welcome to TrelloRadar's documentation!
 .. autoclass:: TrelloRadarApp
    :members:
    :undoc-members:
+
+Indices and tables
+==================
+ 
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
