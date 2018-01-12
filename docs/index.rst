@@ -13,16 +13,12 @@ Welcome to TrelloRadar's documentation!
 .. automodule:: trelloRadar
    
 .. autoclass:: AuthDialog
-   :members:
-   :undoc-members:
    
 .. autoclass:: TrelloRadarApp
    :members:
-   :undoc-members:
 
 Indices and tables
 ==================
  
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
