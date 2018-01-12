@@ -9,6 +9,10 @@ Welcome to TrelloRadar's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   
+.. automodule:: TrelloRadar
+   :members:
+   :undoc-members:
 
 
 
