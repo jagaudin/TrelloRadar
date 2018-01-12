@@ -12,7 +12,7 @@ Welcome to TrelloRadar's documentation!
    
 .. automodule:: trelloRadar
    
-.. autoclass:: Authdialog
+.. autoclass:: AuthDialog
    :members:
    :undoc-members:
    

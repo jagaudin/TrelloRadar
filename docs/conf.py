@@ -28,8 +28,8 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return MagicMock()
 
-MOCK_MODULES = ['configparser', 'webbrowser', 'pathlib', 'bs4', 'clr',
-                'System.Windows.Forms', 'System.Threading', 'System.Drawing']
+MOCK_MODULES = ['bs4', 'clr',
+                'System', 'System.Windows.Forms', 'System.Threading', 'System.Drawing']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
@@ -98,8 +98,8 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+import sphinx_rtd_theme
 html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes", ]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
