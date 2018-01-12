@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 
-"""
-This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 
-Created on Thu Jan  4 17:12:14 2018
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-@author: Jacques Gaudin <jagaudin@gmail.com>
-"""
+#   Created on Thu Jan  4 17:12:14 2018
+
+#   @author: Jacques Gaudin <jagaudin@gmail.com>
+
 
 import requests
 import json
@@ -46,7 +46,9 @@ boards_url = 'https://api.trello.com/1/boards'
 
 class AuthDialog:
     """
-    A class to present a authorization dialog to the user.
+    A class to present an authorization dialog to the user.
+    If `API_key` is not given an API key and token are looked for, otherwise
+    only a token.
 
     :param API_key: an Trello API key, default `None`
     :returns: an `AuthDialog` object
@@ -171,6 +173,8 @@ class AuthDialog:
 class TrelloRadarApp():
     """
     The main application class
+
+    :returns: a `TrelloRadarApp` object
     """
 
     config_path = (Path.home() / 'AppData' / 'Local' / 'TrelloRadar' /
@@ -192,6 +196,12 @@ class TrelloRadarApp():
         self.root.mainloop()
 
     def get_config(self):
+        """
+        Reads the config file
+
+        :returns: `None`
+        """
+
         if not self.config_path.exists():
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
             self.config_path.touch()
@@ -217,6 +227,12 @@ class TrelloRadarApp():
             self.config['search']['search strings'] = ''
 
     def get_API_key(self):
+        """
+        Launches an `AuthDialog` instance to retrieve the API key and token
+
+        :returns: `None`
+        """
+
         self.API_process = AuthDialog()
         try:
             self.API_key = self.API_process.browser.API_key
@@ -229,12 +245,23 @@ class TrelloRadarApp():
         self.config.write(self.config_path.open('w'))
 
     def get_token(self):
+        """
+        Launches an `AuthDialog` instance to retrieve a token
+
+        :returns: `None`
+        """
+
         self.auth_process = AuthDialog(self.API_key)
         self.token = self.auth_process.browser.token
         self.config['auth']['token'] = self.token
         self.config.write(self.config_path.open('w'))
 
     def setup_queries(self):
+        """
+        Defines queries dictionaries
+
+        :returns: `None`
+        """
         self.searchquery = {
             'key': self.API_key,
             'token': self.token,
@@ -247,6 +274,12 @@ class TrelloRadarApp():
         }
 
     def get_data(self):
+        """
+        Sends a request to Trello to search cards
+
+        :returns: `None`
+        """
+
         self.todo_tree.delete(*self.todo_tree.get_children())
         querystring = self.entry.get()
         self.searchquery['query'] = querystring
@@ -287,6 +320,11 @@ class TrelloRadarApp():
                                       values=(due_date, labels), tags=tags)
 
     def clear_search(self):
+        """
+        Clears the list of previous searches
+
+        :returns: `None`
+        """
         self.search_strings = ['@me']
         self.entry['values'] = self.search_strings
 
@@ -304,6 +342,12 @@ class TrelloRadarApp():
         self.root.destroy()
 
     def setup_gui(self):
+        """
+        Prepares the GUI
+
+        :returns: `None`
+        """
+
         self.root = tk.Tk()
         self.root.protocol('WM_DELETE_WINDOW', self.on_closing)
         try:
@@ -348,3 +392,4 @@ class TrelloRadarApp():
 
 if __name__ == '__main__':
     trello_todo_app = TrelloRadarApp()
+
