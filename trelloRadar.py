@@ -109,6 +109,11 @@ class AuthDialog:
             self.Controls.Add(self.web_browser)
 
         def on_navigated(self, sender, args):
+            """
+            Signal handler to redirect to the API key URL on
+            successful login
+            """
+
             self.web_browser.Visible = True
             # redirect main user page on successful login
             if str(self.web_browser.Url) == self.login_redirect_url:
@@ -116,10 +121,18 @@ class AuthDialog:
                 self.web_browser.Navigate(self.API_key_url)
 
         def on_document_completed(self, sender, args):
+            """
+            Signal handler to parse the html content of the page
+            """
+
             content = self.web_browser.DocumentText
             self.soup = BeautifulSoup(content, 'html.parser')
 
         def check_API_key(self, sender, args):
+            """
+            Signal handler to retrieve API key from html content
+            """
+
             try:
                 if self.api_key_success_string in self.soup.find('h1').string:
                     self.web_browser.Visible = False
@@ -131,6 +144,10 @@ class AuthDialog:
                 pass
 
         def check_token(self, sender, args):
+            """
+            Signal handler to retrieve token from html content
+            """
+
             try:
                 if self.token_success_string in self.soup.p.string:
                     self.token = self.soup.find('pre').string.strip()
@@ -139,10 +156,12 @@ class AuthDialog:
                 pass
 
     def __init__(self, API_key=None):
+
         def start():
             self.browser = AuthDialog.FormBrowser(API_key)
             WinForms.Application.Run(self.browser)
 
+        # Create a new thread to run the process
         thread = Thread(ThreadStart(start))
         thread.SetApartmentState(ApartmentState.STA)
         thread.Start()
@@ -150,6 +169,9 @@ class AuthDialog:
 
 
 class TrelloRadarApp():
+    """
+    The main application class
+    """
 
     config_path = (Path.home() / 'AppData' / 'Local' / 'TrelloRadar' /
                    'settings.ini')
