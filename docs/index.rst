@@ -13,7 +13,7 @@ Welcome to TrelloRadar's documentation!
 TrelloRadar module
 ==================
    
-.. automodule:: TrelloRadar
+.. automodule:: trelloRadar
    :members:
    :undoc-members:
 
