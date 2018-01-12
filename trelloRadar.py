@@ -392,4 +392,3 @@ class TrelloRadarApp():
 
 if __name__ == '__main__':
     trello_todo_app = TrelloRadarApp()
-
