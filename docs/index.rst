@@ -10,6 +10,9 @@ Welcome to TrelloRadar's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+TrelloRadar module
+==================
+   
 .. automodule:: TrelloRadar
    :members:
    :undoc-members:
