@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath('../'))
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
-            return MagicMock()
+        return MagicMock()
 
 MOCK_MODULES = ['bs4', 'clr',
                 'System', 'System.Windows.Forms', 'System.Threading', 'System.Drawing']
