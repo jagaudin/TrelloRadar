@@ -235,7 +235,7 @@ class TrelloRadarApp():
             self.search_strings = search_strings.split(';')
         else:
             self.config['search'] = {}
-            self.config['search']['search strings'] = self.search_strings
+            self.config['search']['search strings'] = self.search_strings[0]
 
     def get_API_key(self):
         """
