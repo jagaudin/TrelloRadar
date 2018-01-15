@@ -308,7 +308,12 @@ class TrelloRadarApp():
                 self.todo_tree.item(board_url, open=True)
             if c['due']:
                 due_date = datetime.strptime(c['due'], self.time_f).date()
-                tags = ('overdue',) if self.today > due_date else ()
+                if c['dueComplete']:
+                    tags = ('complete',)
+                elif self.today > due_date:
+                    tags = ('overdue',) 
+                else:
+                    tags = ()
             else:
                 due_date = ''
                 tags = ()
@@ -416,6 +421,7 @@ class TrelloRadarApp():
         self.todo_tree.column('Label', minwidth=50, width=60, stretch=False)
 
         self.todo_tree.tag_configure('overdue', foreground='red')
+        self.todo_tree.tag_configure('complete', foreground='green')
 
         self.todo_tree.bind('<Double-1>', self.link_tree)
 
