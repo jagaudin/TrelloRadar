@@ -20,14 +20,12 @@
 
 
 import requests
-import json
 import configparser
 import webbrowser
 
 from pathlib import Path
 from bs4 import BeautifulSoup
 from datetime import datetime
-from itertools import groupby
 
 import tkinter as tk
 from tkinter import ttk
@@ -375,6 +373,9 @@ class TrelloRadarApp():
     def link_tree(self, event):
         url = self.todo_tree.selection()[0]
         webbrowser.open(url)
+ 
+    def tree_focus(self, event):
+        self.todo_tree.focus(self.todo_tree.get_children()[0])
 
     def on_entry_return(self, event):
         self.send_querystring()
@@ -424,6 +425,8 @@ class TrelloRadarApp():
         self.todo_tree.tag_configure('complete', foreground='green')
 
         self.todo_tree.bind('<Double-1>', self.link_tree)
+        self.todo_tree.bind('<Return>', self.link_tree)
+        self.todo_tree.bind('<FocusIn>', self.tree_focus)
 
         self.entry = ttk.Combobox(self.root, values=self.search_strings)
         self.entry.insert(0, self.search_strings[0])
