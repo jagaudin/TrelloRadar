@@ -296,14 +296,21 @@ class TrelloRadarApp():
         self.todo_tree.delete(*self.todo_tree.get_children())
 
         cards = self.search_cards(query_string)
-        cards = sorted(cards, key=lambda c: c['board']['name'])
+        cards = sorted(cards, key=lambda c: (c['board']['name'], c['list']['name']))
 
         for c in cards:
             board_url = c['board']['url']
+            list_id = c['list']['id']
             if not self.todo_tree.exists(board_url):
                 board_name = c['board']['name']
                 self.todo_tree.insert('', 'end', board_url, text=board_name)
                 self.todo_tree.item(board_url, open=True)
+                
+            if not list_id in self.todo_tree.get_children(board_url):
+                list_name = c['list']['name']
+                self.todo_tree.insert(board_url, 'end', list_id, text=list_name)
+                self.todo_tree.item(list_id, open=True)
+                
             if c['due']:
                 due_date = datetime.strptime(c['due'], self.time_f).date()
                 if c['dueComplete']:
@@ -318,7 +325,7 @@ class TrelloRadarApp():
 
             labels = ', '.join(label['name'] for label in c['labels'])
 
-            self.todo_tree.insert(board_url, 'end', c['shortUrl'],
+            self.todo_tree.insert(list_id, 'end', c['shortUrl'],
                                   text=c['name'],
                                   values=(due_date, labels), tags=tags)
 
@@ -337,6 +344,7 @@ class TrelloRadarApp():
             'key': self.API_key,
             'token': self.token,
             'modelTypes': 'cards',
+            'card_list': 'true',
             'card_board': 'true',
             'board_fields': 'name,url',
             'query': query_string,
@@ -372,7 +380,8 @@ class TrelloRadarApp():
 
     def link_tree(self, event):
         url = self.todo_tree.selection()[0]
-        webbrowser.open(url)
+        if url.startswith('http'):
+            webbrowser.open(url)
  
     def tree_focus(self, event):
         self.todo_tree.focus(self.todo_tree.get_children()[0])
