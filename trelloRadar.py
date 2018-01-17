@@ -485,7 +485,8 @@ class TrelloRadarApp():
                 ('Board > List', 'board list'),
                 ('Board', 'board'),
                 ('List > Board', 'list board'),
-                ('None', '')
+		('List', 'list'),
+                ('None', ''),
                 ]
         self.sorting = tk.StringVar()
         self.sorting.trace('w', self.on_refresh_event)
