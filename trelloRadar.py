@@ -285,7 +285,7 @@ class TrelloRadarApp():
         else:
             self.get_API_key()
 
-    def show_data(self, query_string):
+    def show_data(self, query_string, sorting):
         """
         Shows the cards matching `query_string` in a tree view.
 
@@ -296,27 +296,39 @@ class TrelloRadarApp():
         self.todo_tree.delete(*self.todo_tree.get_children())
 
         cards = self.search_cards(query_string)
-        cards = sorted(cards, key=lambda c: (c['board']['name'], c['list']['name']))
+        cards = sorted(
+            cards, key=lambda c: tuple(c[s]['name'] for s in sorting))
 
         for c in cards:
-            board_url = c['board']['url']
-            list_id = c['list']['id']
-            if not self.todo_tree.exists(board_url):
-                board_name = c['board']['name']
-                self.todo_tree.insert('', 'end', board_url, text=board_name)
-                self.todo_tree.item(board_url, open=True)
-                
-            if not list_id in self.todo_tree.get_children(board_url):
-                list_name = c['list']['name']
-                self.todo_tree.insert(board_url, 'end', list_id, text=list_name)
-                self.todo_tree.item(list_id, open=True)
-                
+            card_insert = ''
+
+            if len(sorting):
+                categories = {
+                        'board': c['board']['url'],
+                        'list': c['list']['name'],
+                        }
+                cat_1 = categories[sorting[0]]
+                card_insert = cat_1
+                if not self.todo_tree.exists(cat_1):
+                    cat_1_name = c[sorting[0]]['name']
+                    self.todo_tree.insert('', 'end', cat_1, text=cat_1_name)
+                    self.todo_tree.item(cat_1, open=True)
+
+                if len(sorting) > 1:
+                    cat_2 = '|'.join(categories[s] for s in sorting)
+                    card_insert = cat_2
+                    if not self.todo_tree.exists(cat_2):
+                        cat_2_name = c[sorting[1]]['name']
+                        self.todo_tree.insert(cat_1, 'end', cat_2,
+                                              text=cat_2_name)
+                        self.todo_tree.item(cat_2, open=True)
+
             if c['due']:
                 due_date = datetime.strptime(c['due'], self.time_f).date()
                 if c['dueComplete']:
                     tags = ('complete',)
                 elif self.today > due_date:
-                    tags = ('overdue',) 
+                    tags = ('overdue',)
                 else:
                     tags = ()
             else:
@@ -325,7 +337,7 @@ class TrelloRadarApp():
 
             labels = ', '.join(label['name'] for label in c['labels'])
 
-            self.todo_tree.insert(list_id, 'end', c['shortUrl'],
+            self.todo_tree.insert(card_insert, 'end', c['url'],
                                   text=c['name'],
                                   values=(due_date, labels), tags=tags)
 
@@ -361,13 +373,14 @@ class TrelloRadarApp():
         """
 
         query_string = self.entry.get()
+        sorting = self.sorting.get().split()
         if not query_string:
             return
 
         if query_string not in self.entry['values']:
             self.entry['values'] = (query_string,) + self.entry['values']
 
-        self.show_data(query_string)
+        self.show_data(query_string, sorting)
 
     def clear_search(self):
         """
@@ -378,15 +391,26 @@ class TrelloRadarApp():
 
         self.entry['values'] = ['@me']
 
+    def back_to_cards(self):
+        self.notebook.select(tab_id='.main.main')
+
     def link_tree(self, event):
-        url = self.todo_tree.selection()[0]
-        if url.startswith('http'):
-            webbrowser.open(url)
- 
+        """
+        Opens the url associated with the tree selection if any.
+
+        :returns: `None`
+        """
+
+        labels = self.todo_tree.selection()[0].split('|')
+        for s in labels:
+            if s.startswith('https:'):
+                webbrowser.open(s)
+                return
+
     def tree_focus(self, event):
         self.todo_tree.focus(self.todo_tree.get_children()[0])
 
-    def on_entry_return(self, event):
+    def on_refresh_event(self, event, *args):
         self.send_querystring()
 
     def on_closing(self):
@@ -415,10 +439,10 @@ class TrelloRadarApp():
         self.root.geometry('540x700')
         self.root.title('Trello Radar')
 
-        self.mainframe = ttk.Frame(self.root, padding='3 3 3 3')
-        self.mainframe.grid(column=0, row=0, columnspan=3, sticky='nwes')
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
+        self.notebook = ttk.Notebook(self.root, name='main')
+        self.notebook.pack(expand=True, fill='both', padx=3, pady=3)
+
+        self.mainframe = ttk.Frame(self.notebook, name='main')
 
         self.todo_tree = ttk.Treeview(self.mainframe,
                                       columns=('Due Date', 'Label'))
@@ -437,18 +461,49 @@ class TrelloRadarApp():
         self.todo_tree.bind('<Return>', self.link_tree)
         self.todo_tree.bind('<FocusIn>', self.tree_focus)
 
-        self.entry = ttk.Combobox(self.root, values=self.search_strings)
+        self.entry = ttk.Combobox(self.mainframe, values=self.search_strings)
         self.entry.insert(0, self.search_strings[0])
-        self.entry.grid(column=0, row=1, sticky='ew')
-        self.entry.bind('<Return>', self.on_entry_return)
+        self.entry.pack(side='left', expand=True, fill='x')
+        self.entry.bind('<Return>', self.on_refresh_event)
 
-        self.clear_button = ttk.Button(self.root, text='Clear search',
+        self.clear_button = ttk.Button(self.mainframe, text='Clear search',
                                        command=self.clear_search)
-        self.clear_button.grid(column=1, row=1)
+        self.clear_button.pack(side='right')
 
-        self.refresh_button = ttk.Button(self.root, text='Refresh',
+        self.refresh_button = ttk.Button(self.mainframe, text='Refresh',
                                          command=self.send_querystring)
-        self.refresh_button.grid(column=2, row=1)
+        self.refresh_button.pack(side='right')
+
+        self.notebook.add(self.mainframe, text='Cards')
+
+        self.optionframe = ttk.Frame(self.notebook, name='options')
+
+        self.sorting_label = ttk.Label(self.optionframe, text="Sorting order")
+        self.sorting_label.pack(side='top', fill='x')
+
+        self.sorting_options = [
+                ('Board > List', 'board list'),
+                ('Board', 'board'),
+                ('List > Board', 'list board'),
+                ('None', '')
+                ]
+        self.sorting = tk.StringVar()
+        self.sorting.trace('w', self.on_refresh_event)
+
+        self.sorting_buttons = []
+        for text, value in self.sorting_options:
+            radiobutton = ttk.Radiobutton(self.optionframe, text=text,
+                                          var=self.sorting, value=value)
+            self.sorting_buttons.append(radiobutton)
+            self.sorting_buttons[-1].pack(side='top', fill='x', padx=10)
+
+        self.sorting.set('board')
+
+        self.back_button = ttk.Button(self.optionframe, text='Back to cards',
+                                      command=self.back_to_cards)
+        self.back_button.pack(side='bottom')
+
+        self.notebook.add(self.optionframe, text='Options')
 
 if __name__ == '__main__':
     trello_todo_app = TrelloRadarApp()
