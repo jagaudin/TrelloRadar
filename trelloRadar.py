@@ -400,8 +400,10 @@ class TrelloRadarApp():
 
         :returns: `None`
         """
-
-        labels = self.todo_tree.selection()[0].split('|')
+        if not args:
+            return
+        
+        labels = self.todo_tree.identify_row(args[0].y).split('|')
         for s in labels:
             if s.startswith('https:'):
                 webbrowser.open(s)
