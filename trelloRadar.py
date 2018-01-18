@@ -306,7 +306,7 @@ class TrelloRadarApp():
                 categories = {
                         'board': c['board']['url'],
                         'list': c['list']['name'],
-                        }
+                }
                 cat_1 = categories[sorting[0]]
                 card_insert = cat_1
                 if not self.todo_tree.exists(cat_1):
@@ -382,7 +382,7 @@ class TrelloRadarApp():
 
         self.show_data(query_string, sorting)
 
-    def clear_search(self):
+    def clear_search(self, *args):
         """
         Resets the previous search list to `['@me']`
 
@@ -391,10 +391,10 @@ class TrelloRadarApp():
 
         self.entry['values'] = ['@me']
 
-    def back_to_cards(self):
+    def back_to_cards(self, *args):
         self.notebook.select(tab_id='.main.main')
 
-    def link_tree(self, event):
+    def link_tree(self, *args):
         """
         Opens the url associated with the tree selection if any.
 
@@ -407,13 +407,13 @@ class TrelloRadarApp():
                 webbrowser.open(s)
                 return
 
-    def tree_focus(self, event):
+    def tree_focus(self, *args):
         self.todo_tree.focus(self.todo_tree.get_children()[0])
 
-    def on_refresh_event(self, event, *args):
+    def on_refresh_event(self, *args):
         self.send_querystring()
 
-    def on_closing(self):
+    def on_closing(self, *args):
         config_search_strings = ';'.join(s for s in self.entry['values'])
         self.config['search']['search strings'] = config_search_strings
         self.save_config()
@@ -457,7 +457,7 @@ class TrelloRadarApp():
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
 
-        self.todo_tree.bind('<Double-1>', self.link_tree)
+        self.todo_tree.bind('<Button-2>', self.link_tree)
         self.todo_tree.bind('<Return>', self.link_tree)
         self.todo_tree.bind('<FocusIn>', self.tree_focus)
 
@@ -469,31 +469,34 @@ class TrelloRadarApp():
         self.clear_button = ttk.Button(self.mainframe, text='Clear search',
                                        command=self.clear_search)
         self.clear_button.pack(side='right')
+        self.clear_button.bind('<Return>', self.clear_search)
 
         self.refresh_button = ttk.Button(self.mainframe, text='Refresh',
-                                         command=self.send_querystring)
+                                         command=self.on_refresh_event)
         self.refresh_button.pack(side='right')
+        self.refresh_button.bind('<Return>', self.on_refresh_event)
 
         self.notebook.add(self.mainframe, text='Cards')
 
         self.optionframe = ttk.Frame(self.notebook, name='options')
 
-        self.sorting_label = ttk.Label(self.optionframe, text="Sorting order")
-        self.sorting_label.pack(side='top', fill='x')
+        self.sorting_frame = ttk.Labelframe(
+                self.optionframe, text="Sorting order")
+        self.sorting_frame.pack(side='top', fill='x', padx=3, pady=3)
 
         self.sorting_options = [
                 ('Board > List', 'board list'),
                 ('Board', 'board'),
                 ('List > Board', 'list board'),
-		('List', 'list'),
+		         ('List', 'list'),
                 ('None', ''),
-                ]
+        ]
         self.sorting = tk.StringVar()
         self.sorting.trace('w', self.on_refresh_event)
 
         self.sorting_buttons = []
         for text, value in self.sorting_options:
-            radiobutton = ttk.Radiobutton(self.optionframe, text=text,
+            radiobutton = ttk.Radiobutton(self.sorting_frame, text=text,
                                           var=self.sorting, value=value)
             self.sorting_buttons.append(radiobutton)
             self.sorting_buttons[-1].pack(side='top', fill='x', padx=10)
@@ -503,6 +506,7 @@ class TrelloRadarApp():
         self.back_button = ttk.Button(self.optionframe, text='Back to cards',
                                       command=self.back_to_cards)
         self.back_button.pack(side='bottom')
+        self.back_button.bind('<Return>', self.back_to_cards)
 
         self.notebook.add(self.optionframe, text='Options')
 
