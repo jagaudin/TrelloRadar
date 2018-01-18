@@ -335,6 +335,10 @@ class TrelloRadarApp():
                 due_date = ''
                 tags = ()
 
+            if (c['badges']['checkItems'] and
+                c['badges']['checkItems'] == c['badges']['checkItemsChecked']):
+                tags = tags + ('100%',)
+
             labels = ', '.join(label['name'] for label in c['labels'])
 
             self.todo_tree.insert(card_insert, 'end', c['url'],
@@ -458,6 +462,7 @@ class TrelloRadarApp():
 
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
+        self.todo_tree.tag_configure('100%', background='honeydew')
 
         self.todo_tree.bind('<Button-2>', self.link_tree)
         self.todo_tree.bind('<Return>', self.link_tree)
