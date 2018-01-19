@@ -29,6 +29,7 @@ from datetime import datetime
 
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 
 import clr
 clr.AddReference('System.Threading')
@@ -293,6 +294,7 @@ class TrelloRadarApp():
         :returns: `None`
         """
 
+        self.icons = {}
         self.todo_tree.delete(*self.todo_tree.get_children())
 
         cards = self.search_cards(query_string)
@@ -339,11 +341,18 @@ class TrelloRadarApp():
                 c['badges']['checkItems'] == c['badges']['checkItemsChecked']):
                 tags = tags + ('100%',)
 
-            labels = ', '.join(label['name'] for label in c['labels'])
+            img = self.colors['no-color']
 
-            self.todo_tree.insert(card_insert, 'end', c['url'],
-                                  text=c['name'],
-                                  values=(due_date, labels), tags=tags)
+            for label in c['labels']:
+                if label['color'] in self.colors.keys():
+                    img = Image.alpha_composite(img,
+                                                self.colors[label['color']])
+
+            self.icons[c['id']] = ImageTk.PhotoImage(img)
+
+            self.todo_tree.insert(card_insert, 'end', 'card|' + c['url'],
+                                  text=c['name'], image=self.icons[c['id']],
+                                  values=(due_date), tags=tags)
 
     def search_cards(self, query_string, cards_limit='1000'):
         """
@@ -404,10 +413,16 @@ class TrelloRadarApp():
 
         :returns: `None`
         """
+
         if not args:
             return
-        
+
         labels = self.todo_tree.identify_row(args[0].y).split('|')
+
+        # Filter out double click on boards and lists
+        if args[0].num == 1 and labels[0] != 'card':
+            return
+
         for s in labels:
             if s.startswith('https:'):
                 webbrowser.open(s)
@@ -442,6 +457,13 @@ class TrelloRadarApp():
         except:
             print('Icon file not found')
 
+        colors = ['blue', 'purple', 'red', 'orange', 'yellow', 'green',
+                  'no-color']
+        self.colors = {
+                col: Image.open('icons/{0}.png'.format(col)).convert('RGBA').resize((12,12), Image.ANTIALIAS)
+                for col in colors
+        }
+
         self.root.geometry('540x700')
         self.root.title('Trello Radar')
 
@@ -451,19 +473,18 @@ class TrelloRadarApp():
         self.mainframe = ttk.Frame(self.notebook, name='main')
 
         self.todo_tree = ttk.Treeview(self.mainframe,
-                                      columns=('Due Date', 'Label'))
+                                      columns=('Due Date',))
         self.todo_tree.pack(expand=True, fill='both')
         self.todo_tree.heading('#0', text='Task')
-        self.todo_tree.column('#0', minwidth=200, width=390, stretch=True)
+        self.todo_tree.column('#0', minwidth=200, width=450, stretch=True)
         self.todo_tree.heading('Due Date', text='Due Date')
         self.todo_tree.column('Due Date', minwidth=50, width=70, stretch=False)
-        self.todo_tree.heading('Label', text='Label')
-        self.todo_tree.column('Label', minwidth=50, width=60, stretch=False)
 
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
 
+        self.todo_tree.bind('<Double-1>', self.link_tree)
         self.todo_tree.bind('<Button-2>', self.link_tree)
         self.todo_tree.bind('<Return>', self.link_tree)
         self.todo_tree.bind('<FocusIn>', self.tree_focus)
@@ -518,4 +539,5 @@ class TrelloRadarApp():
         self.notebook.add(self.optionframe, text='Options')
 
 if __name__ == '__main__':
+
     trello_todo_app = TrelloRadarApp()
