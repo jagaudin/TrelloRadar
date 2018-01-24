@@ -1,2 +1,4 @@
 beautifulsoup4==4.6
 pythonnet==2.3
+requests==2.18
+pillow==5.0
