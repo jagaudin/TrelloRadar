@@ -188,6 +188,14 @@ class TrelloRadarApp():
                    'settings.ini')
 
     search_strings = ['@me']
+    sort_string = 'board list'
+
+    window_geom = {
+        'posx': '0',
+        'posy': '0',
+        'width': '540',
+        'height': '700',
+    }
 
     time_f = '%Y-%m-%dT%H:%M:%S.%fZ'
 
@@ -235,6 +243,19 @@ class TrelloRadarApp():
         else:
             self.config['search'] = {}
             self.config['search']['search strings'] = self.search_strings[0]
+
+        # Read 'sort' section
+        if self.config.has_option('sort', 'sort string'):
+            self.sort_string = self.config['sort']['sort string']
+        else:
+            self.config['sort'] = {}
+            self.config['sort']['sort string'] = self.sort_string
+
+        # Read the 'window' section
+        if self.config.has_section('window'):
+            if all(self.config.has_option('window', prop) for prop in ['posx',
+                   'posy', 'width', 'height']):
+                self.window_geom = self.config['window']
 
     def get_API_key(self):
         """
@@ -407,29 +428,38 @@ class TrelloRadarApp():
     def back_to_cards(self, *args):
         self.notebook.select(tab_id='.main.main')
 
-    def link_tree(self, *args):
+    def link_tree(self, labels):
         """
         Opens the url associated with the tree selection if any.
 
         :returns: `None`
         """
 
-        if not args:
-            return
+        for s in labels:
+            if s.startswith('https:'):
+                webbrowser.open(s)
+                return
 
+    def on_tree_button(self, *args):
         labels = self.todo_tree.identify_row(args[0].y).split('|')
 
         # Filter out double click on boards and lists
         if args[0].num == 1 and labels[0] != 'card':
             return
 
-        for s in labels:
-            if s.startswith('https:'):
-                webbrowser.open(s)
-                return
+        self.link_tree(labels)
 
-    def tree_focus(self, *args):
-        self.todo_tree.focus(self.todo_tree.get_children()[0])
+    def on_tree_return(self, *args):
+        labels = self.todo_tree.focus().split('|')
+        
+        self.link_tree(labels)
+
+        # Stop the event propoagation to avoid closing container
+        return "break"
+
+    def on_tree_focus(self, *args):
+        if not self.todo_tree.focus():
+            self.todo_tree.focus(self.todo_tree.get_children()[0])
 
     def on_refresh_event(self, *args):
         self.send_querystring()
@@ -437,6 +467,13 @@ class TrelloRadarApp():
     def on_closing(self, *args):
         config_search_strings = ';'.join(s for s in self.entry['values'])
         self.config['search']['search strings'] = config_search_strings
+        self.config['sort']['sort string'] = self.sorting.get()
+        self.config['window'] = {
+                'posx': str(self.root.winfo_x()),
+                'posy': str(self.root.winfo_y()),
+                'width': str(self.root.winfo_width()),
+                'height': str(self.root.winfo_height()),
+        }
         self.save_config()
         self.root.destroy()
 
@@ -464,7 +501,13 @@ class TrelloRadarApp():
                 for col in colors
         }
 
-        self.root.geometry('540x700')
+        self.root.geometry('{0}x{1}+{2}+{3}'.format(
+                self.window_geom['width'],
+                self.window_geom['height'],
+                self.window_geom['posx'],
+                self.window_geom['posy'],
+        ))
+
         self.root.title('Trello Radar')
 
         self.notebook = ttk.Notebook(self.root, name='main')
@@ -484,10 +527,10 @@ class TrelloRadarApp():
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
 
-        self.todo_tree.bind('<Double-1>', self.link_tree)
-        self.todo_tree.bind('<Button-2>', self.link_tree)
-        self.todo_tree.bind('<Return>', self.link_tree)
-        self.todo_tree.bind('<FocusIn>', self.tree_focus)
+        self.todo_tree.bind('<Double-1>', self.on_tree_button)
+        self.todo_tree.bind('<Button-3>', self.on_tree_button)
+        self.todo_tree.bind('<Return>', self.on_tree_return)
+        self.todo_tree.bind('<FocusIn>', self.on_tree_focus)
 
         self.entry = ttk.Combobox(self.mainframe, values=self.search_strings)
         self.entry.insert(0, self.search_strings[0])
@@ -503,6 +546,8 @@ class TrelloRadarApp():
                                          command=self.on_refresh_event)
         self.refresh_button.pack(side='right')
         self.refresh_button.bind('<Return>', self.on_refresh_event)
+        # Adjust tab order
+        self.refresh_button.lower(belowThis=self.clear_button)
 
         self.notebook.add(self.mainframe, text='Cards')
 
@@ -529,7 +574,7 @@ class TrelloRadarApp():
             self.sorting_buttons.append(radiobutton)
             self.sorting_buttons[-1].pack(side='top', fill='x', padx=10)
 
-        self.sorting.set('board')
+        self.sorting.set(self.sort_string)
 
         self.back_button = ttk.Button(self.optionframe, text='Back to cards',
                                       command=self.back_to_cards)
@@ -537,6 +582,37 @@ class TrelloRadarApp():
         self.back_button.bind('<Return>', self.back_to_cards)
 
         self.notebook.add(self.optionframe, text='Options')
+
+        self.helpframe = ttk.Frame(self.notebook, name='help')
+        
+        self.search_help = ttk.Labelframe(self.helpframe, text='Search help')
+        self.search_help.pack(side='top', fill='x', padx=3, pady=3)
+        
+        self.search_text = tk.Text(self.search_help, wrap=tk.WORD)
+        self.search_text.pack(side='left', fill='both')
+        text = ("Search operators help you find specific cards and create " 
+               "highly tailored lists. Trello will suggest operators for "
+               "you as you type, but here’s a full list to keep in mind.\n"
+               "You can add “-” to any operator to do a negative search, "
+               "such as -has:members to search for cards without any "
+               "members assigned.\n\n"
+
+               "@name\n"
+               "Returns cards assigned to a member. If you start typing @,"
+               "Trello will suggest members for you. member: also works.\n"
+               "@me will include only your cards.\n"
+               "#label\n"
+               "Returns labeled cards. label: also works.\n"
+               "board:id\n"
+               "Returns cards within a specific board. If you start typing"
+               "board:, Trello will suggest boards for you. You can search"
+               "by board name, too, such as “board:Trello” to search only "
+               "cards on boards with Trello in the board name.")
+        self.search_text.insert('end', text)
+        self.search_text.config(state='disabled')
+
+        self.notebook.add(self.helpframe, text='Help')
+
 
 if __name__ == '__main__':
 
