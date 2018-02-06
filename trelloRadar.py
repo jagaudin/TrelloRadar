@@ -591,8 +591,7 @@ class TrelloRadarApp():
         self.search_text = tk.Text(self.search_help, wrap=tk.WORD)
         self.search_text.pack(side='left', fill='both')
         text = ("Search operators help you find specific cards and create " 
-               "highly tailored lists. Trello will suggest operators for "
-               "you as you type, but here’s a full list to keep in mind.\n"
+               "highly tailored lists.\n"
                "You can add “-” to any operator to do a negative search, "
                "such as -has:members to search for cards without any "
                "members assigned.\n\n"
