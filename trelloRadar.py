@@ -307,6 +307,13 @@ class TrelloRadarApp():
         else:
             self.get_API_key()
 
+    def record_open_item(self, item=None):
+
+        for subitem in self.todo_tree.get_children(item):
+            if self.todo_tree.get_children(subitem):
+                self.is_item_open[subitem] = self.todo_tree.item(subitem)['open']
+                self.record_open_item(subitem)
+
     def show_data(self, query_string, sorting):
         """
         Shows the cards matching `query_string` in a tree view.
@@ -316,6 +323,8 @@ class TrelloRadarApp():
         """
 
         self.icons = {}
+        self.is_item_open = {}
+        self.record_open_item()
         self.todo_tree.delete(*self.todo_tree.get_children())
 
         cards = self.search_cards(query_string)
@@ -335,7 +344,8 @@ class TrelloRadarApp():
                 if not self.todo_tree.exists(cat_1):
                     cat_1_name = c[sorting[0]]['name']
                     self.todo_tree.insert('', 'end', cat_1, text=cat_1_name)
-                    self.todo_tree.item(cat_1, open=True)
+                    is_open = self.is_item_open.get(cat_1, True)
+                    self.todo_tree.item(cat_1, open=is_open)
 
                 if len(sorting) > 1:
                     cat_2 = '|'.join(categories[s] for s in sorting)
@@ -344,7 +354,8 @@ class TrelloRadarApp():
                         cat_2_name = c[sorting[1]]['name']
                         self.todo_tree.insert(cat_1, 'end', cat_2,
                                               text=cat_2_name)
-                        self.todo_tree.item(cat_2, open=True)
+                        is_open = self.is_item_open.get(cat_2, True)
+                        self.todo_tree.item(cat_2, open=is_open)
 
             if c['due']:
                 due_date = datetime.strptime(c['due'], self.time_f).date()
