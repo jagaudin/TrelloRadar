@@ -363,6 +363,8 @@ class TrelloRadarApp():
                     tags = ('complete',)
                 elif self.today > due_date:
                     tags = ('overdue',)
+                elif self.today == due_date:
+                    tags = ('duetoday')
                 else:
                     tags = ()
             else:
@@ -537,6 +539,7 @@ class TrelloRadarApp():
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
+        self.todo_tree.tag_configure('duetoday', background='PaleTurquoise1')
 
         self.todo_tree.bind('<Double-1>', self.on_tree_button)
         self.todo_tree.bind('<Button-3>', self.on_tree_button)
@@ -593,35 +596,6 @@ class TrelloRadarApp():
         self.back_button.bind('<Return>', self.back_to_cards)
 
         self.notebook.add(self.optionframe, text='Options')
-
-        self.helpframe = ttk.Frame(self.notebook, name='help')
-        
-        self.search_help = ttk.Labelframe(self.helpframe, text='Search help')
-        self.search_help.pack(side='top', fill='x', padx=3, pady=3)
-        
-        self.search_text = tk.Text(self.search_help, wrap=tk.WORD)
-        self.search_text.pack(side='left', fill='both')
-        text = ("Search operators help you find specific cards and create " 
-               "highly tailored lists.\n"
-               "You can add “-” to any operator to do a negative search, "
-               "such as -has:members to search for cards without any "
-               "members assigned.\n\n"
-
-               "@name\n"
-               "Returns cards assigned to a member. If you start typing @,"
-               "Trello will suggest members for you. member: also works.\n"
-               "@me will include only your cards.\n"
-               "#label\n"
-               "Returns labeled cards. label: also works.\n"
-               "board:id\n"
-               "Returns cards within a specific board. If you start typing"
-               "board:, Trello will suggest boards for you. You can search"
-               "by board name, too, such as “board:Trello” to search only "
-               "cards on boards with Trello in the board name.")
-        self.search_text.insert('end', text)
-        self.search_text.config(state='disabled')
-
-        self.notebook.add(self.helpframe, text='Help')
 
 
 if __name__ == '__main__':
