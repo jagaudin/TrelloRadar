@@ -25,7 +25,7 @@ import webbrowser
 
 from pathlib import Path
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import tkinter as tk
 from tkinter import ttk
@@ -365,6 +365,8 @@ class TrelloRadarApp():
                     tags = ('overdue',)
                 elif self.today == due_date:
                     tags = ('duetoday')
+                elif due_date - self.today < timedelta(days=7):
+                    tags = ('duethisweek')
                 else:
                     tags = ()
             else:
@@ -540,6 +542,7 @@ class TrelloRadarApp():
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
         self.todo_tree.tag_configure('duetoday', background='PaleTurquoise1')
+        self.todo_tree.tag_configure('duethisweek', background='azure')
 
         self.todo_tree.bind('<Double-1>', self.on_tree_button)
         self.todo_tree.bind('<Button-3>', self.on_tree_button)
