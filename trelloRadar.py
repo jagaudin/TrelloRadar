@@ -364,16 +364,17 @@ class TrelloRadarApp():
                 elif self.today > due_date:
                     tags = ('overdue',)
                 elif self.today == due_date:
-                    tags = ('duetoday')
+                    tags = ('duetoday',)
                 elif due_date - self.today < timedelta(days=7):
-                    tags = ('duethisweek')
+                    tags = ('duethisweek',)
                 else:
                     tags = ()
             else:
                 due_date = ''
                 tags = ()
 
-            if (c['badges']['checkItems'] and
+            if (not tags and 
+                c['badges']['checkItems'] and
                 c['badges']['checkItems'] == c['badges']['checkItemsChecked']):
                 tags = tags + ('100%',)
 
