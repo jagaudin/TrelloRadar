@@ -221,7 +221,7 @@ class TrelloRadarApp():
             self.config_path.touch()
 
         self.config = configparser.ConfigParser()
-        self.config.read(self.config_path)
+        self.config.read([self.config_path])
 
         # Read 'auth' section
         if (self.config.has_section('auth') and
@@ -343,7 +343,7 @@ class TrelloRadarApp():
                 card_insert = cat_1
                 if not self.todo_tree.exists(cat_1):
                     cat_1_name = c[sorting[0]]['name']
-                    self.todo_tree.insert('', 'end', cat_1, text=cat_1_name)
+                    self.todo_tree.insert('', 'end', cat_1, text=cat_1_name, tags='cat1name')
                     is_open = self.is_item_open.get(cat_1, True)
                     self.todo_tree.item(cat_1, open=is_open)
 
@@ -353,7 +353,7 @@ class TrelloRadarApp():
                     if not self.todo_tree.exists(cat_2):
                         cat_2_name = c[sorting[1]]['name']
                         self.todo_tree.insert(cat_1, 'end', cat_2,
-                                              text=cat_2_name)
+                                              text=cat_2_name, tags='cat2name')
                         is_open = self.is_item_open.get(cat_2, True)
                         self.todo_tree.item(cat_2, open=is_open)
 
@@ -539,6 +539,8 @@ class TrelloRadarApp():
         self.todo_tree.heading('Due Date', text='Due Date')
         self.todo_tree.column('Due Date', minwidth=50, width=70, stretch=False)
 
+        self.todo_tree.tag_configure('cat1name', foreground='dodger blue')
+        self.todo_tree.tag_configure('cat2name', foreground='midnight blue')
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
