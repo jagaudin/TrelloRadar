@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter.colorchooser import askcolor
 from PIL import Image, ImageTk
 
 import clr
@@ -343,7 +344,8 @@ class TrelloRadarApp():
                 card_insert = cat_1
                 if not self.todo_tree.exists(cat_1):
                     cat_1_name = c[sorting[0]]['name']
-                    self.todo_tree.insert('', 'end', cat_1, text=cat_1_name, tags='cat1name')
+                    self.todo_tree.insert('', 'end', cat_1, text=cat_1_name,
+                                          tags='cat1name')
                     is_open = self.is_item_open.get(cat_1, True)
                     self.todo_tree.item(cat_1, open=is_open)
 
@@ -480,6 +482,13 @@ class TrelloRadarApp():
     def on_refresh_event(self, *args):
         self.send_querystring()
 
+    def on_bgcolor_event(self, *args):
+
+        print(args)
+        color = askcolor()
+        self.style.configure("Treeview", background=color[1],
+                             fieldbackground=color[1])
+
     def on_closing(self, *args):
         config_search_strings = ';'.join(s for s in self.entry['values'])
         self.config['search']['search strings'] = config_search_strings
@@ -513,7 +522,10 @@ class TrelloRadarApp():
         colors = ['blue', 'purple', 'red', 'orange', 'yellow', 'green',
                   'no-color']
         self.colors = {
-                col: Image.open('icons/{0}.png'.format(col)).convert('RGBA').resize((12,12), Image.ANTIALIAS)
+                col: Image.open('icons/{0}.png'.format(col))
+                                .convert('RGBA')
+                                .resize((12,12),
+                                Image.ANTIALIAS)
                 for col in colors
         }
 
@@ -525,6 +537,10 @@ class TrelloRadarApp():
         ))
 
         self.root.title('Trello Radar')
+
+        self.style = ttk.Style(self.root)
+        self.style.configure("Treeview", background="light grey",
+                        fieldbackground="light grey", foreground="black")
 
         self.notebook = ttk.Notebook(self.root, name='main')
         self.notebook.pack(expand=True, fill='both', padx=3, pady=3)
@@ -540,7 +556,7 @@ class TrelloRadarApp():
         self.todo_tree.column('Due Date', minwidth=50, width=70, stretch=False)
 
         self.todo_tree.tag_configure('cat1name', foreground='dodger blue')
-        self.todo_tree.tag_configure('cat2name', foreground='midnight blue')
+        self.todo_tree.tag_configure('cat2name', foreground='navy')
         self.todo_tree.tag_configure('overdue', foreground='red')
         self.todo_tree.tag_configure('complete', foreground='green')
         self.todo_tree.tag_configure('100%', background='honeydew')
@@ -571,10 +587,10 @@ class TrelloRadarApp():
 
         self.notebook.add(self.mainframe, text='Cards')
 
-        self.optionframe = ttk.Frame(self.notebook, name='options')
+        self.option_frame = ttk.Frame(self.notebook, name='options')
 
         self.sorting_frame = ttk.Labelframe(
-                self.optionframe, text="Sorting order")
+                self.option_frame, text="Sorting order")
         self.sorting_frame.pack(side='top', fill='x', padx=3, pady=3)
 
         self.sorting_options = [
@@ -596,13 +612,23 @@ class TrelloRadarApp():
 
         self.sorting.set(self.sort_string)
 
-        self.back_button = ttk.Button(self.optionframe, text='Back to cards',
+        self.color_frame = ttk.Labelframe(self.option_frame, text="Colors")
+        self.color_frame.pack(side='top', fill='x', padx=3,pady=3)
+
+        self.bgcolor_label = ttk.Label(self.color_frame, text="Background color:")
+        self.bgcolor_label.pack(side='left', expand='True', fill='x', padx=10)
+
+        self.bgcolor_button = ttk.Button(self.color_frame, text="Choose color",
+                                         command=self.on_bgcolor_event)
+        self.bgcolor_button.pack(side='right')
+        self.bgcolor_button.bind('<Return>', self.on_bgcolor_event)
+
+        self.back_button = ttk.Button(self.option_frame, text='Back to cards',
                                       command=self.back_to_cards)
         self.back_button.pack(side='bottom')
         self.back_button.bind('<Return>', self.back_to_cards)
 
-        self.notebook.add(self.optionframe, text='Options')
-
+        self.notebook.add(self.option_frame, text='Options')
 
 if __name__ == '__main__':
 
